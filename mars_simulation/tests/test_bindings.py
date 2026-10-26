@@ -66,3 +66,23 @@ def test_missing_module_error_is_readable(raw):
     raw["modules"].pop("Grey_Water_Store")
     with pytest.raises(bindings.BindingError, match="Grey_Water_Store"):
         bindings.to_state(raw)
+
+
+@pytest.mark.parametrize("power_W,area,expect", [
+    (0.0, 10.0, 0.0),                               # lamps off
+    (1.0, 10.0, bindings.LAMP_PPF_PER_W / 10.0),    # below saturation: linear in power
+    (2.0, 10.0, 244.30),
+    (1000.0, 10.0, 295.14),                         # saturates at what the crop needs
+    (5.0, 0.0, 0.0),                                # empty shelf
+])
+def test_delivered_ppf_follows_shelf_light_plants(power_W, area, expect):
+    assert bindings.delivered_ppf(power_W, area, 295.14) == pytest.approx(expect, rel=1e-3)
+
+
+def test_delivered_ppf_from_bed_power_draw(raw):
+    bed_power = raw["modules"]["Lettuce_Bed"]["consumers"][0]["rates"]
+    assert bindings.to_state(raw)[shelf_key(0, "ppf_delivered")] == pytest.approx(295.14)
+    bed_power["actualFlowRates"] = [1.0]
+    assert bindings.to_state(raw)[shelf_key(0, "ppf_delivered")] == pytest.approx(122.15, rel=1e-3)
+    bed_power["actualFlowRates"] = [0.0]
+    assert bindings.to_state(raw)[shelf_key(0, "ppf_delivered")] == 0.0
