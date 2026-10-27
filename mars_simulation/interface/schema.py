@@ -25,6 +25,7 @@ STATE_KEYS: Dict[str, Key] = {
     "gh.rh":                 Key("-", "greenhouse relative humidity, 0-1"),
     "gh.pressure_kPa":       Key("kPa", "greenhouse total pressure"),
     "gh.light":              Key("lumens", "outside light used by the solar array (day/night shape)"),
+    "gh.temp_C": Key("degC", "greenhouse air temperature calculated by the thermal model"),
     "power.store_level":     Key("W*tick", "energy in Power_Store"),
     "power.store_capacity":  Key("W*tick", "Power_Store capacity"),
     "power.solar_out":       Key("W", "solar array output this tick"),
@@ -56,6 +57,7 @@ TRUTH_ONLY_KEYS: Dict[str, Key] = {
 COMMAND_KEYS: Dict[str, Key] = {
     "cmd.crop_water_L":   Key("L/tick", "max grey water the lettuce bed may draw per tick", 0, 200),
     "cmd.crop_power_W":   Key("W", "max power the lettuce bed (lamps) may draw per tick", 0, 20000),
+    "cmd.heater_W": Key("W", "requested greenhouse heater electrical power", 0, 2000),
     "cmd.co2_inject_mol": Key("mol/tick", "CO2 moved from CO2_Store into the greenhouse", 0, 5),
 }
 

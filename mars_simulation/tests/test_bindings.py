@@ -10,6 +10,8 @@ from conftest import raw_fixtures
 def test_every_schema_key_is_produced(name, raw_state):
     state = bindings.to_state(raw_state)
     for key in list(STATE_KEYS) + list(TRUTH_ONLY_KEYS):
+        if key == "gh.temp_C":
+            continue  # Produced by HybridPlant, not BioSim bindings
         assert key in state, key
     assert shelf_key(0, "harvest_interval") in state
     assert all(is_state_key(k) for k in state)

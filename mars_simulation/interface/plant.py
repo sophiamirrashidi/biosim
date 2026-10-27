@@ -93,6 +93,88 @@ class BioSimPlant:
         if fault.kind == "malfunction" and malf_id is not None:
             self.client.clear_malfunction(fault.target, malf_id)
 
+class HybridPlant:
+    """Combines BioSim resource simulation with greenhouse thermal dynamics."""
+
+    def __init__(
+        self,
+        client: Optional[BioSimClient] = None,
+        config_path: Optional[Path] = None,
+        initial_temp_C: float = 20.0,
+    ):
+        from thermal.model import GreenhouseThermalModel
+
+        if config_path is None:
+            config_path = (
+                Path(__file__).resolve().parent.parent
+                / "configs"
+                / "mars_lettuce_heater_test.biosim"
+            )
+
+        self.biosim = BioSimPlant(
+            client=client,
+            config_path=config_path,
+        )
+
+        self.initial_temp_C = float(initial_temp_C)
+        self.thermal = GreenhouseThermalModel(
+            initial_temp_C=self.initial_temp_C
+        )
+
+    def reset(self) -> Dict[str, Any]:
+        """Reset BioSim and the greenhouse thermal model."""
+        state = self.biosim.reset()
+
+        self.thermal.temp_C = self.initial_temp_C
+        state["gh.temp_C"] = self.thermal.temp_C
+
+        return state
+    def read(self) -> Dict[str, Any]:
+        """Return the combined state without advancing the simulation."""
+        state = self.biosim.read()
+        state["gh.temp_C"] = self.thermal.temp_C
+        return state
+    def apply(self, commands: Dict[str, float]) -> None:
+        """Forward controller commands to BioSim."""
+        self.biosim.apply(commands)
+    def step(self) -> Dict[str, Any]:
+        """Advance BioSim, then update the greenhouse thermal model."""
+        state = self.biosim.step()
+
+        raw = self.biosim.raw
+
+        heater_power_W = bindings._actual(
+            raw,
+            bindings.FlowTarget(
+                bindings.HEATER,
+                "consumers",
+                "Power",
+            ),
+        )
+
+        lamp_power_W = state["power.crop_draw"]
+
+        # The state now reflects the completed tick.
+        # Use the hour at which that tick began.
+        hour = state["time.hour_of_day"] - 1.0
+
+        self.thermal.step(
+            hour=hour,
+            lamp_power_W=lamp_power_W,
+            heater_power_W=heater_power_W,
+        )
+
+        state["gh.temp_C"] = self.thermal.temp_C
+
+        return state
+
+    def inject(self, fault: Fault) -> None:
+        """Forward fault injection to BioSim."""
+        self.biosim.inject(fault)
+
+    def clear(self, fault: Fault) -> None:
+        """Forward fault clearing to BioSim."""
+        self.biosim.clear(fault)
 
 class FakePlant:
     """Toy dynamics with the same keys as BioSimPlant. Not a model of anything; only for

@@ -20,6 +20,7 @@ GREY = "Grey_Water_Store"
 DIRTY = "Dirty_Water_Store"
 CO2_STORE = "CO2_Store"
 CO2_INJECTOR = "CO2_Injector"
+HEATER = "Greenhouse_Heater"
 BIOMASS_STORE = "Biomass_Store"
 
 REQUIRED_MODULES = [GREENHOUSE, CROP_BED, SOLAR, POWER_STORE, POTABLE, GREY, DIRTY,
@@ -46,6 +47,7 @@ COMMAND_BINDINGS: Dict[str, List[FlowTarget]] = {
     "cmd.crop_water_L":   [FlowTarget(CROP_BED, "consumers", "GreyWater")],
     "cmd.crop_power_W":   [FlowTarget(CROP_BED, "consumers", "Power")],
     "cmd.co2_inject_mol": [FlowTarget(CO2_INJECTOR, "consumers", "CO2")],
+    "cmd.heater_W": [FlowTarget(HEATER, "consumers", "Power")],
 }
 assert set(COMMAND_BINDINGS) == set(COMMAND_KEYS)
 
@@ -153,6 +155,8 @@ def validate(raw: Dict[str, Any]) -> List[str]:
         problems.append(f"modules missing from config: {missing}")
         return problems
     for key, targets in COMMAND_BINDINGS.items():
+        if key == "cmd.heater_W" and HEATER not in raw["modules"]:
+            continue
         hi = COMMAND_KEYS[key].hi
         for t in targets:
             try:
