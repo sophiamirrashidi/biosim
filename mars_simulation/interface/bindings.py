@@ -21,6 +21,8 @@ DIRTY = "Dirty_Water_Store"
 CO2_STORE = "CO2_Store"
 CO2_INJECTOR = "CO2_Injector"
 BIOMASS_STORE = "Biomass_Store"
+HEATER = "Greenhouse_Heater"
+HEATER_SINK = "Heater_Sink"
 
 REQUIRED_MODULES = [GREENHOUSE, CROP_BED, SOLAR, POWER_STORE, POTABLE, GREY, DIRTY,
                     CO2_STORE, CO2_INJECTOR, BIOMASS_STORE]
@@ -46,6 +48,8 @@ COMMAND_BINDINGS: Dict[str, List[FlowTarget]] = {
     "cmd.crop_water_L":   [FlowTarget(CROP_BED, "consumers", "GreyWater")],
     "cmd.crop_power_W":   [FlowTarget(CROP_BED, "consumers", "Power")],
     "cmd.co2_inject_mol": [FlowTarget(CO2_INJECTOR, "consumers", "CO2")],
+    "cmd.heater_W":       [FlowTarget(HEATER, "consumers", "Power")],
+    "cmd.isru_co2_mol":   [],
 }
 assert set(COMMAND_BINDINGS) == set(COMMAND_KEYS)
 
@@ -98,6 +102,20 @@ def _active_faults(raw: Dict[str, Any]) -> List[Dict[str, Any]]:
     return out
 
 
+def _heater_draw(raw: Dict[str, Any]) -> float:
+    if HEATER in raw.get("modules", {}):
+        try:
+            return _actual(raw, FlowTarget(HEATER, "consumers", "Power"))
+        except BindingError:
+            return 0.0
+    return 0.0
+
+
+def _gh_temp(raw: Dict[str, Any]) -> float:
+    p = _props(raw, GREENHOUSE)
+    return float(p.get("temperature", 22.0))
+
+
 STATE_READERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
     "time.tick":             lambda r: int(r["globals"]["ticksGoneBy"]),
     "time.hour_of_day":      _hour_of_day,
@@ -106,10 +124,15 @@ STATE_READERS: Dict[str, Callable[[Dict[str, Any]], Any]] = {
     "gh.rh":                 lambda r: float(_props(r, GREENHOUSE)["relativeHumidity"]),
     "gh.pressure_kPa":       lambda r: float(_props(r, GREENHOUSE)["totalPressure"]),
     "gh.light":              lambda r: float(_props(r, GREENHOUSE)["lightIntensity"]),
+    "gh.temp_C":             _gh_temp,
+    "gh.temp_truth_C":       _gh_temp,
+    "gh.temp_alarm":         lambda r: "NOMINAL",
+    "mars.temp_ext_C":       lambda r: -50.15,
     "power.store_level":     lambda r: _level(r, POWER_STORE),
     "power.store_capacity":  lambda r: float(_props(r, POWER_STORE)["currentCapacity"]),
     "power.solar_out":       lambda r: _actual(r, FlowTarget(SOLAR, "producers", "Power")),
     "power.crop_draw":       lambda r: _actual(r, FlowTarget(CROP_BED, "consumers", "Power")),
+    "power.heater_draw":     _heater_draw,
     "water.potable_L":       lambda r: _level(r, POTABLE),
     "water.grey_L":          lambda r: _level(r, GREY),
     "water.dirty_L":         lambda r: _level(r, DIRTY),
@@ -153,6 +176,8 @@ def validate(raw: Dict[str, Any]) -> List[str]:
         problems.append(f"modules missing from config: {missing}")
         return problems
     for key, targets in COMMAND_BINDINGS.items():
+        if not targets:
+            continue
         hi = COMMAND_KEYS[key].hi
         for t in targets:
             try:
