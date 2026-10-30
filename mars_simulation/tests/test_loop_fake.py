@@ -71,3 +71,9 @@ def test_supervisor_sees_who_asked():
     log = TickLogger()
     run(FakePlant(), {"lamps": lamp_controller}, 2, supervisor=halve_lamps, logger=log)
     assert log.records[0]["applied"] == {"cmd.crop_power_W": 1500.0}
+
+
+@pytest.mark.parametrize("lamp_W,expect", [(0.0, 0.0), (1.0, 122.15), (3000.0, 295.14)])
+def test_fake_plant_reports_delivered_ppf(lamp_W, expect):
+    final = run(FakePlant(), {"lamps": lambda obs: {"cmd.crop_power_W": lamp_W}}, 1)
+    assert final["crop.s0.ppf_delivered"] == pytest.approx(expect, rel=1e-3)

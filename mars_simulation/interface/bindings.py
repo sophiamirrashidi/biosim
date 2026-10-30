@@ -128,15 +128,32 @@ _SHELF_JSON = {
     "co2_inhaled_mol": "molesOfCO2Inhaled",
     "ppf_needed": "ppfNeeded",
 }
-assert set(_SHELF_JSON) == set(SHELF_FIELDS)
+# Shelf fields BioSim doesn't report; to_state computes them.
+_SHELF_DERIVED = {"ppf_delivered"}
+assert set(_SHELF_JSON) | _SHELF_DERIVED == set(SHELF_FIELDS)
+
+# Shelf.lightPlants: PPF = power * lamp efficiency * PS efficiency / area (high pressure sodium).
+LAMP_PPF_PER_W = 261.0 * 4.68
+
+
+def delivered_ppf(power_W: float, area_m2: float, ppf_needed: float) -> float:
+    """PPF BioSim shines on a shelf given the power that shelf drew (Shelf.lightPlants).
+    The shelf never delivers more than the crop needs, so this saturates at ppf_needed."""
+    if area_m2 <= 0 or power_W <= 0:
+        return 0.0
+    return min(power_W * LAMP_PPF_PER_W / area_m2, ppf_needed)
 
 
 def to_state(raw: Dict[str, Any]) -> Dict[str, Any]:
     """Raw BioSim JSON -> flat truth dict. Raises BindingError if the config doesn't match."""
     state = {key: read(raw) for key, read in STATE_READERS.items()}
-    for i, shelf in enumerate(_props(raw, CROP_BED).get("shelves", [])):
+    shelves = _props(raw, CROP_BED).get("shelves", [])
+    for i, shelf in enumerate(shelves):
         for name, json_key in _SHELF_JSON.items():
             state[shelf_key(i, name)] = float(shelf[json_key])
+        # BiomassPS gives each shelf a 1/n share of the bed's power consumer
+        state[shelf_key(i, "ppf_delivered")] = delivered_ppf(
+            state["power.crop_draw"] / len(shelves), float(shelf["cropAreaUsed"]), float(shelf["ppfNeeded"]))
     return state
 
 

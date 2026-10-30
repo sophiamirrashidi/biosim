@@ -101,6 +101,7 @@ class FakePlant:
 
     DAY = 24.66
     SOLAR_PEAK = 20000.0
+    CROP_AREA = 10.0            # m2
     CROP_POWER_NEED = 15200.0   # Shelf asks 1520 W/m2 x 10 m2
     CROP_WATER_NEED = 1.5       # L/tick
     CO2_UPTAKE = 0.2            # mol/tick when lit
@@ -153,6 +154,7 @@ class FakePlant:
             shelf_key(0, "harvest_interval"): 28.0,
             shelf_key(0, "co2_inhaled_mol"): self.last["co2_up"],
             shelf_key(0, "ppf_needed"): 295.14,
+            shelf_key(0, "ppf_delivered"): bindings.delivered_ppf(self.last["crop_power"], self.CROP_AREA, 295.14),
         }
         return s
 
