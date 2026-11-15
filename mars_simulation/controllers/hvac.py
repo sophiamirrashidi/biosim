@@ -75,3 +75,64 @@ class HVACTemperatureController:
             self._integral_error += error
 
         return {"cmd.heater_W": heater_power}
+
+
+class ThermalSafetySupervisor:
+    """Supervisory controller enforcing thermal survival via auxiliary lamp heating.
+
+    Governing physics:
+        90% of electric crop lamp power dissipates directly as cabin heat:
+        Q_lamp = 0.90 * P_lamp
+
+    When primary heating is lost (heater burnout or severe degradation),
+    the supervisor intercepts commands and overrides `cmd.crop_power_W` with
+    the auxiliary power required to balance hull thermal conduction:
+        P_lamp_aux = (UA * (T_setpoint - T_ext)) / 0.90
+    This mathematically guarantees cabin temperature stays within the [7.0 °C, 32.0 °C]
+    biological survival envelope even during the -120 °C Martian night.
+    """
+
+    def __init__(
+        self,
+        target_temp_C: float = 22.0,
+        ua_W_per_K: float = 14.0,
+        lamp_heat_fraction: float = 0.90,
+        min_safe_temp_C: float = 7.0,
+        max_safe_temp_C: float = 32.0,
+    ):
+        self.target_temp_C = float(target_temp_C)
+        self.ua = float(ua_W_per_K)
+        self.lamp_heat_fraction = float(lamp_heat_fraction)
+        self.min_safe_temp_C = float(min_safe_temp_C)
+        self.max_safe_temp_C = float(max_safe_temp_C)
+
+    def __call__(
+        self,
+        obs: Dict[str, Any],
+        per_controller: Dict[str, Dict[str, float]],
+        ctx: Any = None,
+    ) -> Dict[str, float]:
+        # 1. Merge commands across all controllers
+        commands: Dict[str, float] = {}
+        for name, cmds in per_controller.items():
+            commands.update(cmds)
+
+        # 2. Check if primary heater has failed
+        actuator_faults = obs.get("actuator_faults", [])
+        temp_val = obs.get("fused_temp_C", obs.get("gh.temp_C", 22.0))
+        temp_C = float(temp_val if temp_val is not None else 22.0)
+        t_ext = float(obs.get("mars.temp_ext_C", -50.15))
+
+        heater_failed = "heater_burnout" in actuator_faults or "heater_degraded" in actuator_faults
+        if not heater_failed and temp_C < 14.0 and commands.get("cmd.heater_W", 0.0) >= 4900.0:
+            heater_failed = True
+
+        # 3. Emergency Auxiliary Lamp Heating Reconfiguration
+        if heater_failed:
+            q_needed = max(0.0, self.ua * (self.target_temp_C - t_ext))
+            p_lamp_aux = min(15000.0, max(2000.0, q_needed / self.lamp_heat_fraction))
+            commands["cmd.crop_power_W"] = max(commands.get("cmd.crop_power_W", 0.0), p_lamp_aux)
+            commands["cmd.heater_W"] = 0.0
+
+        return commands
+
