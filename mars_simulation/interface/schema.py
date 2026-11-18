@@ -52,6 +52,7 @@ SHELF_FIELDS: Dict[str, Key] = {
     "harvest_interval":         Key("days", "days from planting to harvest"),
     "co2_inhaled_mol":          Key("mol", "CO2 taken up by the shelf this tick"),
     "ppf_needed":               Key("umol/m2/s", "light the crop asks for"),
+    "ppf_delivered":            Key("umol/m2/s", "light the lamps gave the crop this tick (derived, see bindings)"),
     "reservoir_capacity_L":     Key("L", "size of the shelf's internal water reservoir (50 L/m2)"),
 }
 
