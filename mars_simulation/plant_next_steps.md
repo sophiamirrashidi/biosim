@@ -139,3 +139,12 @@ Current status as verified in [`tests/test_fault_requirements.py`](tests/test_fa
 
 ### Priority 5: Physical ISRU Closed Loop
 - Pipe compressed Martian $\text{CO}_2$ moles from `MarsAtmosphereCompressorModel` into BioSim's `CO2_Store` over the simulation loop so the habitat's life support loop is physically closed.
+
+---
+
+## 6. Architecture & Fault Detection Reference Notes
+- **Truth Cleanliness:** `HybridPlant` separates sensor readings from ground truth, and `gh.temp_truth_C` is stripped from `obs` before reaching controllers.
+- **Atmosphere Verification:** `scripts/atmosphere_fault_check.py` scores each fault scenario for detection, false alarms, and cabin safety.
+- **Gas Model Scaling:** The monitor's $\text{CO}_2$ model uses measured flows (`co2.injected_mol`, `crop.s0.co2_inhaled_mol`) and scales total gas by $P/T$ (preventing the 170 ppm drift over live cycles).
+- **Test Requirements:** `tests/test_fault_requirements.py` tracks active and resolved fault detection requirements.
+- **Loop Integration:** `estimators.MonitorInLoop` runs the monitor before controllers (as a sensor layer) and steps models after them (as the supervisor). HVAC controls on `fused_temp_C` to survive large sensor biases.
