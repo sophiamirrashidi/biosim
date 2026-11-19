@@ -1,8 +1,8 @@
 """Cyber-Physical Controllers for Martian habitat bioregenerative life support."""
 from __future__ import annotations
 
-from .hvac import HVACTemperatureController
+from .hvac import HVACTemperatureController, ThermalSafetySupervisor
 from .irrigation import IrrigationController
 
-__all__ = ["HVACTemperatureController", "IrrigationController"]
+__all__ = ["HVACTemperatureController", "ThermalSafetySupervisor", "IrrigationController"]
 
