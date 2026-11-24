@@ -377,6 +377,9 @@ class AtmosphereTemperatureMonitor:
 
         if self._last_cmd_co2 > 1.0 and actual_co2_injected < 0.01:
             actuator_faults.append("co2_injector_blocked")
+        elif self._last_cmd_co2 < 0.2 and actual_co2_injected >= 0.4:
+            actuator_faults.append("co2_injector_stuck_open")
+        self._last_actual_co2 = actual_co2_injected
 
         # 2. Model predictions for current tick k
         model_temp_sensor = self.thermal_est.lag_temp_C
@@ -603,7 +606,13 @@ class AtmosphereTemperatureMonitor:
             effective_heater_power = next_cmd_heater * self._heater_output_ratio
         else:
             effective_heater_power = next_cmd_heater
-        effective_co2_inject = 0.0 if "co2_injector_blocked" in faults else next_cmd_co2
+
+        if "co2_injector_stuck_open" in faults:
+            effective_co2_inject = getattr(self, "_last_actual_co2", next_cmd_co2)
+        elif "co2_injector_blocked" in faults:
+            effective_co2_inject = 0.0
+        else:
+            effective_co2_inject = next_cmd_co2
 
         next_hour = (hour + 1.0) % self.thermal_est.MARS_SOL_HOURS
         self.thermal_est.step(hour=next_hour, crop_power_W=next_cmd_crop, heater_power_W=effective_heater_power)

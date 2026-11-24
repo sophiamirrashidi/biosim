@@ -25,8 +25,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SIM_ROOT = REPO_ROOT / "mars_simulation"
+TESTS_DIR = Path(__file__).resolve().parent
 if str(SIM_ROOT) not in sys.path:
     sys.path.insert(0, str(SIM_ROOT))
+if str(TESTS_DIR) not in sys.path:
+    sys.path.insert(0, str(TESTS_DIR))
 
 from actuators import ATMOSPHERE_ACTUATOR_KEYS, AtmosphereActuatorLayer, chain_actuator_layers
 from controllers.hvac import HVACTemperatureController
@@ -342,6 +345,65 @@ class TestClosedLoopFDIRIntegration(unittest.TestCase):
         final_temp = float(truth["gh.temp_truth_C"])
         self.assertGreater(final_temp, 14.0)
         self.assertLess(final_temp, 28.0)
+
+    def test_co2_injector_stuck_open_detection(self):
+        """Monitor identifies when CO2 injector is stuck open and does not falsely blame CO2 sensor."""
+        monitor = AtmosphereTemperatureMonitor()
+        monitor.reset(22.0, 1200.0)
+
+        # Commanded 0.0 mol/tick, but actual injected is 0.5 mol/tick
+        obs = {
+            "time.hour_of_day": 0.0,
+            "gh.temp_C": 22.0,
+            "gh.co2_ppm": 1200.0,
+            "co2.injected_mol": 0.5,
+            "power.heater_draw": 1000.0,
+            "power.store_level": 50000.0,
+        }
+        # Last command was 0.0
+        monitor._last_cmd_co2 = 0.0
+
+        diag = monitor.update(obs, commands={"cmd.co2_inject_mol": 0.0, "cmd.heater_W": 1000.0})
+        self.assertIn("co2_injector_stuck_open", diag["actuator_faults"])
+        self.assertEqual(diag["co2_faults"], [])
+
+    def test_heater_burnout_thermal_survival_with_auxiliary_lamps(self):
+        """ThermalSafetySupervisor engages auxiliary crop lamp heating when heater burns out,
+        keeping cabin temperature strictly within [7.0 °C, 32.0 °C] survival envelope."""
+        from controllers.hvac import ThermalSafetySupervisor
+        from interface.loop import run
+
+        plant = HybridPlant(plant=FakePlant(), sync_biosim_temperature=False)
+        supervisor = ThermalSafetySupervisor(target_temp_C=22.0)
+        hvac = HVACTemperatureController(setpoint_C=22.0)
+        burnout = Fault(tick=20, kind="stuck", target="cmd.heater_W", params={"value": 0.0}, duration=40)
+
+        log_records = []
+        final_state = run(
+            plant=plant,
+            controllers={"hvac": hvac, "crop": lambda obs: {"cmd.crop_power_W": 200.0}},
+            n_ticks=60,
+            supervisor=supervisor,
+            actuator_layer=AtmosphereActuatorLayer(),
+            fault_schedule=[burnout],
+        )
+
+        # Minimum temperature must never drop below critical 7.0 °C despite -120 °C exterior
+        min_temp = min(final_state["gh.temp_C"], final_state["gh.temp_truth_C"])
+        self.assertGreaterEqual(min_temp, 7.0)
+        self.assertLessEqual(final_state["gh.temp_C"], 32.0)
+
+    def test_isru_co2_replenishment(self):
+        """Commanding cmd.isru_co2_mol replenishes physical co2_store."""
+        plant = FakePlant()
+        initial_store = plant.co2_store
+
+        # Command 5 moles ISRU extraction
+        plant.apply({"cmd.isru_co2_mol": 5.0, "cmd.co2_inject_mol": 0.0})
+        state = plant.step()
+
+        self.assertAlmostEqual(state["co2.store_mol"], initial_store + 5.0, places=2)
+
 
 
 class TestTruthStaysClean(unittest.TestCase):

@@ -244,6 +244,10 @@ class FakePlant:
         co2_up = frac * co2_need
         transp = frac * self.TRANSP_PER_CO2 * co2_need
         self.dirty += transp  # dehumidifier condenses all of it, vapor stays put
+        isru_cmd = self.cmd.get("cmd.isru_co2_mol", 0.0)
+        isru_in = min(isru_cmd, 10.0)
+        self.co2_store = min(500.0, self.co2_store + isru_in)
+
         co2_in = min(self.cmd["cmd.co2_inject_mol"], 5.0, self.co2_store)
         self.co2_store -= co2_in
         self.co2_gh += co2_in - co2_up
