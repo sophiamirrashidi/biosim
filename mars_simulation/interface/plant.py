@@ -111,7 +111,9 @@ class FakePlant:
 
     DAY = 24.66
     SOLAR_PEAK = 20000.0
-    CROP_POWER_NEED = 15200.0   # Shelf asks 1520 W/m2 x 10 m2
+    CROP_AREA = 10.0            # m2
+    CROP_POWER_NEED = 15200.0   # most the shelf draws: 1520 W/m2 x 10 m2 (power past full light is heat only)
+    FULL_LIGHT_W = 295.14 * 10.0 / bindings.LED_PPF_PER_W   # ~729 W on the LED shelf (configs/mars_lettuce.biosim)
     TOTAL_MOLES = 2050.0
     CYCLE = 672                 # lettuce maturity, ticks
     CO2_PEAK = 0.30             # mol/tick at maturity
@@ -143,7 +145,7 @@ class FakePlant:
         self.recycler_broken = False
         self.cmd = {
             "cmd.crop_water_L": 20.0,
-            "cmd.crop_power_W": 2000.0,
+            "cmd.crop_power_W": self.FULL_LIGHT_W,
             "cmd.co2_inject_mol": 0.0,
             "cmd.recycler_power_W": 0.0,
             "cmd.heater_W": 0.0,
@@ -201,6 +203,7 @@ class FakePlant:
             shelf_key(0, "harvest_interval"): 28.0,
             shelf_key(0, "co2_inhaled_mol"): self.last["co2_up"],
             shelf_key(0, "ppf_needed"): 295.14,
+            shelf_key(0, "ppf_delivered"): bindings.delivered_ppf(self.last["crop_power"], self.CROP_AREA, 295.14),
             shelf_key(0, "reservoir_capacity_L"): self.RESERVOIR_L,
             shelf_key(0, "reservoir_L"): self.reservoir,
         }

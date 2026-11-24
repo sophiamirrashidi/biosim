@@ -1183,7 +1183,9 @@ public class SimulationInitializer {
         Node child = node.getFirstChild();
         while (child != null) {
             if ("shelf".equals(child.getLocalName())) {
-                biomassPS.createNewShelf(getCropType(child), getCropArea(child), getCropStartDay(child));
+                Shelf shelf = biomassPS.createNewShelf(getCropType(child), getCropArea(child), getCropStartDay(child));
+                if (child.getAttributes().getNamedItem("lampEfficacy") != null)
+                    shelf.setLampEfficacy(getAttributeFloat(child, "lampEfficacy"));
             }
             child = child.getNextSibling();
         }

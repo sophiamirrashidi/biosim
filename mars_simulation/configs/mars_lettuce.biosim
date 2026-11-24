@@ -56,8 +56,12 @@
     <food>
       <BiomassStore moduleName="Biomass_Store" capacity="1000" level="0" cropType="LETTUCE"/>
       <BiomassPS moduleName="Lettuce_Bed" autoHarvestAndReplant="true">
-        <shelf cropType="LETTUCE" cropArea="10"/>
-        <powerConsumer        inputs="Power_Store"         desiredFlowRates="2000" maxFlowRates="20000"/>
+        <!-- LED lamps: 2.7 umol/J fixtures (above the DLC horticultural list median), run
+             continuously at 16/24 of their real power because BioSim's lettuce model already
+             assumes a 16 h photoperiod: 2.7 x 24/16 = 4.05. Full light is then about 729 W,
+             the same daily energy as 1093 W for 16 h. Keep in step with bindings.LED_PPF_PER_W. -->
+        <shelf cropType="LETTUCE" cropArea="10" lampEfficacy="4.05"/>
+        <powerConsumer        inputs="Power_Store"         desiredFlowRates="729"  maxFlowRates="20000"/>
         <potableWaterConsumer inputs="Potable_Water_Store" desiredFlowRates="20"   maxFlowRates="200"/>
         <greyWaterConsumer    inputs="Grey_Water_Store"    desiredFlowRates="0"    maxFlowRates="0"/>
         <airConsumer          inputs="Greenhouse"          desiredFlowRates="0"    maxFlowRates="0"/>

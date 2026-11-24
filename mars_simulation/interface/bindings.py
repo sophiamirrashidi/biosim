@@ -164,20 +164,50 @@ _SHELF_JSON = {
     "reservoir_capacity_L": "waterCapacity",
     "reservoir_L": "waterLevel",
 }
-assert set(_SHELF_JSON) == set(SHELF_FIELDS) | set(SHELF_TRUTH_ONLY_FIELDS)
+# Shelf fields BioSim doesn't report; to_state computes them.
+_SHELF_DERIVED = {"ppf_delivered"}
+assert set(_SHELF_JSON) | _SHELF_DERIVED == set(SHELF_FIELDS) | set(SHELF_TRUTH_ONLY_FIELDS)
 
 PATCHED_SHELF_FIELDS = ("waterLevel", "waterCapacity")
+
+# Shelf.lightPlants: PPF = power * photon efficacy / area. The server reports each shelf's
+# efficacy (photonEfficacy, umol/J); a build without that field has the original high
+# pressure sodium lamps.
+HPS_PPF_PER_W = 261.0 * 4.68
+# The LED lamps in configs/mars_lettuce.biosim (lampEfficacy): 2.7 umol/J run continuously at
+# 16/24 of real power, since BioSim's lettuce already assumes a 16 h photoperiod. Used where
+# no server is involved (FakePlant, scripts); tests check it matches the config.
+LED_PPF_PER_W = 2.7 * 24 / 16
+
+
+def delivered_ppf(power_W: float, area_m2: float, ppf_needed: float,
+                  ppf_per_W: float = LED_PPF_PER_W) -> float:
+    """PPF BioSim shines on a shelf given the power that shelf drew (Shelf.lightPlants).
+    The shelf never delivers more than the crop needs, so this saturates at ppf_needed."""
+    if area_m2 <= 0 or power_W <= 0:
+        return 0.0
+    return min(power_W * ppf_per_W / area_m2, ppf_needed)
+
+
+def full_light_W(area_m2: float, ppf_needed: float, ppf_per_W: float = LED_PPF_PER_W) -> float:
+    """Lamp power at which delivered PPF reaches ppf_needed (about 729 W for 10 m2 of lettuce)."""
+    return ppf_needed * area_m2 / ppf_per_W
 
 
 def to_state(raw: Dict[str, Any]) -> Dict[str, Any]:
     """Raw BioSim JSON -> flat truth dict. Raises BindingError if the config doesn't match."""
     state = {key: read(raw) for key, read in STATE_READERS.items()}
-    for i, shelf in enumerate(_props(raw, CROP_BED).get("shelves", [])):
+    shelves = _props(raw, CROP_BED).get("shelves", [])
+    for i, shelf in enumerate(shelves):
         for name, json_key in _SHELF_JSON.items():
             if json_key not in shelf:
                 raise BindingError(f"shelf field {json_key!r} missing; the server is an unpatched "
                                    "BioSim build. Rebuild it from this branch (see README).")
             state[shelf_key(i, name)] = float(shelf[json_key])
+        # BiomassPS gives each shelf a 1/n share of the bed's power consumer
+        state[shelf_key(i, "ppf_delivered")] = delivered_ppf(
+            state["power.crop_draw"] / len(shelves), float(shelf["cropAreaUsed"]), float(shelf["ppfNeeded"]),
+            float(shelf.get("photonEfficacy", HPS_PPF_PER_W)))
     return state
 
 
