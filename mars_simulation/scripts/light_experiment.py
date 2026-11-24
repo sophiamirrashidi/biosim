@@ -43,7 +43,7 @@ from interface import bindings  # noqa: E402
 CROP_AREA_M2 = 10.0
 PPF_NEEDED = 295.14
 # lamp power at which BioSim's shelf delivers exactly PPF_NEEDED (~2.42 W for 10 m2)
-FULL_LAMP_W = PPF_NEEDED * CROP_AREA_M2 / bindings.LAMP_PPF_PER_W
+FULL_LAMP_W = bindings.full_light_W(CROP_AREA_M2, PPF_NEEDED)
 CO2_TARGET_PPM = 1200.0
 GH_TOTAL_MOLES = 2050.0
 WATER_L = 20.0

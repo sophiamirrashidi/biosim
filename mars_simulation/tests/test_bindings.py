@@ -91,16 +91,33 @@ def test_missing_module_error_is_readable(raw):
 
 @pytest.mark.parametrize("power_W,area,expect", [
     (0.0, 10.0, 0.0),                               # lamps off
-    (1.0, 10.0, bindings.LAMP_PPF_PER_W / 10.0),    # below saturation: linear in power
-    (2.0, 10.0, 244.30),
-    (1000.0, 10.0, 295.14),                         # saturates at what the crop needs
+    (100.0, 10.0, 40.5),                            # below saturation: linear in power
+    (364.37, 10.0, 147.57),                         # half of full light
+    (728.74, 10.0, 295.14),                         # full light
+    (2000.0, 10.0, 295.14),                         # saturates at what the crop needs
     (5.0, 0.0, 0.0),                                # empty shelf
 ])
 def test_delivered_ppf_follows_shelf_light_plants(power_W, area, expect):
     assert bindings.delivered_ppf(power_W, area, 295.14) == pytest.approx(expect, rel=1e-3)
 
 
+def test_led_efficacy_matches_the_config():
+    from pathlib import Path
+    import re
+    xml = (Path(__file__).resolve().parent.parent / "configs" / "mars_lettuce.biosim").read_text()
+    assert float(re.search(r'lampEfficacy="([\d.]+)"', xml).group(1)) == pytest.approx(bindings.LED_PPF_PER_W)
+    assert bindings.full_light_W(10.0, 295.14) == pytest.approx(728.74, abs=0.01)
+
+
+def test_delivered_ppf_uses_the_efficacy_the_server_reports(raw):
+    shelf = raw["modules"]["Lettuce_Bed"]["properties"]["shelves"][0]
+    raw["modules"]["Lettuce_Bed"]["consumers"][0]["rates"]["actualFlowRates"] = [364.37]
+    shelf["photonEfficacy"] = 4.05
+    assert bindings.to_state(raw)[shelf_key(0, "ppf_delivered")] == pytest.approx(147.57, rel=1e-3)
+
+
 def test_delivered_ppf_from_bed_power_draw(raw):
+    # no photonEfficacy reported: an unpatched build, high pressure sodium lamps
     bed_power = raw["modules"]["Lettuce_Bed"]["consumers"][0]["rates"]
     assert bindings.to_state(raw)[shelf_key(0, "ppf_delivered")] == pytest.approx(295.14)
     bed_power["actualFlowRates"] = [1.0]
