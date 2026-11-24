@@ -30,7 +30,11 @@ SUPPORTED_ACTUATOR_FAULTS = frozenset({"stuck", "efficiency", "bias", "dropout"}
 class AtmosphereActuatorLayer:
     """Actuator layer compatible with interface.loop.run(actuator_layer=...)."""
 
-    def __init__(self, limits: Optional[Dict[str, float]] = None):
+    def __init__(self, limits: Optional[Dict[str, float]] = None,
+                 keys: Iterable[str] = ATMOSPHERE_ACTUATOR_KEYS):
+        # which commands this layer applies faults to; other subsystems reuse the fault
+        # logic by passing their own keys (actuators/lighting.py)
+        self.keys = frozenset(keys)
         self.limits = limits or {
             "cmd.heater_W": 5000.0,
             "cmd.co2_inject_mol": 5.0,
@@ -41,7 +45,7 @@ class AtmosphereActuatorLayer:
         applied = dict(commands)
         active_faults = ctx.active_faults
 
-        for key in ATMOSPHERE_ACTUATOR_KEYS:
+        for key in self.keys:
             if key not in applied:
                 continue
 

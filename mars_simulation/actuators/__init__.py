@@ -3,8 +3,11 @@ from .atmosphere import (
     AtmosphereActuatorLayer,
     chain_actuator_layers,
 )
+from .lighting import LAMP_KEY, LightingActuatorLayer
 
 __all__ = [
+    "LightingActuatorLayer",
+    "LAMP_KEY",
     "AtmosphereActuatorLayer",
     "ATMOSPHERE_ACTUATOR_KEYS",
     "chain_actuator_layers",
