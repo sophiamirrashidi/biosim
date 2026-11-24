@@ -8,6 +8,9 @@
 		<xsd:attribute name="cropType" type="CropType" use="required"/>
 		<xsd:attribute name="cropArea" type="nonNegativeFloat" use="required"/>
 		<xsd:attribute name="startTick" type="xsd:nonNegativeInteger" default="0"/>
+		<!-- lamp photon efficacy in umol/J; when set, the shelf uses these lamps instead of
+		     high pressure sodium. Power beyond full light adds no light -->
+		<xsd:attribute name="lampEfficacy" type="nonNegativeFloat" use="optional"/>
 	</xsd:complexType>
 	
 	<xsd:simpleType name="CropType">

@@ -23,6 +23,9 @@ public class Shelf {
     private float waterNeeded = 0f;
     private float powerLevel = 0f;
     private int myStartTick;
+    /* optional lamp photon efficacy (umol of PPF per joule); <= 0 keeps the high pressure
+       sodium lamps. Either way the shelf draws up to the BVAD 1520 W/m2 */
+    private float lampEfficacy = -1f;
 
     public Shelf(PlantType pType, float pCropAreaTotal,
                  BiomassPS pBiomass) {
@@ -44,6 +47,17 @@ public class Shelf {
 
     public float getWaterLevel() {
         return waterLevel;
+    }
+
+    public void setLampEfficacy(float pEfficacy) {
+        lampEfficacy = pEfficacy;
+    }
+
+    // PPF per watt the lamps deliver, before dividing by area
+    public float getPhotonEfficacy() {
+        if (lampEfficacy > 0)
+            return lampEfficacy;
+        return getLampEfficiency() * getPSEfficiency();
     }
 
     // reservoir size gatherWater() refills toward each tick
@@ -102,8 +116,23 @@ public class Shelf {
         waterLevel += gatheredGreyWater + gatheredPotableWater;
     }
 
+    // the most the lamp circuit draws, whatever the lamps: power beyond full light adds no
+    // light, but a thermal model counting lamp power as heat still sees it (a backup heater)
+    float getPowerNeeded() {
+        return POWER_PER_SQUARE_METER * getCropAreaUsed();
+    }
+
+    // PPF the crop gets from pPower watts: linear in power, capped at what the crop needs
+    float deliveredPPF(float pPower) {
+        float powerToDeliver = Math.min(pPower,
+                myCrop.getPPFNeeded() * getCropAreaUsed() / getPhotonEfficacy());
+        if (powerToDeliver <= 0)
+            powerToDeliver = Float.MIN_VALUE;
+        return powerToDeliver * getPhotonEfficacy() / getCropAreaUsed();
+    }
+
     private void gatherPower() {
-        float powerNeeded = POWER_PER_SQUARE_METER * getCropAreaUsed();
+        float powerNeeded = getPowerNeeded();
         powerLevel = myBiomassPS.getPowerConsumerDefinition()
                 .getFractionalResourceFromStores(powerNeeded,
                         1f / myBiomassPS.getNumberOfShelves());
@@ -123,14 +152,7 @@ public class Shelf {
         //myLogger.debug("Shelf: powerLevel: " + powerLevel);
         //myLogger.debug("Shelf: getLampEfficiency:" + getLampEfficiency());
         //myLogger.debug("Shelf: getPSEfficiency: " + getPSEfficiency());
-        float powerToDeliver = Math
-                .min(powerLevel, myCrop.getPPFNeeded() * getCropAreaUsed()
-                        / (getLampEfficiency() * getPSEfficiency()));
-        if (powerToDeliver <= 0)
-            powerToDeliver = Float.MIN_VALUE;
-        float thePPF = powerToDeliver * getLampEfficiency() * getPSEfficiency()
-                / getCropAreaUsed();
-        myCrop.shine(thePPF);
+        myCrop.shine(deliveredPPF(powerLevel));
     }
 
     private float getLampEfficiency() {
