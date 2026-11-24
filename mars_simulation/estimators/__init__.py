@@ -1,3 +1,4 @@
+from .lamp import LampMonitor
 from .root_zone import RootZoneMonitor
 from .thermal import (
     AtmosphereGasEstimator,
@@ -11,6 +12,7 @@ __all__ = [
     "ReservoirEstimator",
     "INCORPORATED_L_PER_MOL_CO2",
     "RootZoneMonitor",
+    "LampMonitor",
     "ThermalEstimator",
     "AtmosphereGasEstimator",
     "AtmosphereTemperatureMonitor",
