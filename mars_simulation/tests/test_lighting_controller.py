@@ -118,3 +118,57 @@ def test_storm_dims_the_lamps_and_recovers():
     assert sum(adaptive) < sum(fixed), "less lamp energy over the storm"
     assert sum(w < 1 for w in adaptive) <= sum(w < 1 for w in fixed), "never dark for longer"
     assert modes[-1] == "FULL", "back to full light once the battery recharges"
+
+
+# lamp faults in the loop: the controller compensates weak lamps, not a lying sensor
+
+from actuators import LAMP_KEY, LightingActuatorLayer  # noqa: E402
+from sensors import LightSensorLayer, light_key  # noqa: E402
+
+PPF = light_key(0)
+
+
+def fault_run(fault, ticks=80):
+    ctl, log = LightingController(), TickLogger()
+    gains, flags = [], []
+
+    def lamps(o):
+        cmds = ctl(o)
+        gains.append(ctl.gain)
+        flags.append(ctl.status["lamp.faults"])
+        return cmds
+
+    run(FakePlant(), {"lamps": lamps}, ticks, sensor_layer=LightSensorLayer(),
+        actuator_layer=LightingActuatorLayer(), fault_schedule=[fault], logger=log)
+    light = [r["truth"][PPF] for r in log.records]
+    return gains, flags, light
+
+
+def lamp_fault(kind, **params):
+    return Fault(tick=20, kind=kind, target=LAMP_KEY, params=params, duration=30)
+
+
+@pytest.mark.parametrize("factor,gain,light", [
+    (0.8, 1.25, 295.14),          # fully restored
+    (0.6, 1.5, 0.9 * 295.14),     # capped at the fixtures' 1.5x: 90 % of full light
+])
+def test_weak_lamps_are_compensated_then_released(factor, gain, light):
+    gains, flags, truth = fault_run(lamp_fault("efficiency", factor=factor))
+    assert gains[19] == 1.0
+    assert all(g == pytest.approx(gain) for g in gains[25:50])
+    assert all(t == pytest.approx(light, rel=1e-3) for t in truth[26:50])
+    assert all(g == 1.0 for g in gains[55:]), "back to normal power after the fault"
+    assert all(t == pytest.approx(295.14, rel=1e-3) for t in truth[56:])
+
+
+def test_dead_lamps_are_flagged_not_chased():
+    gains, flags, _ = fault_run(lamp_fault("dropout"))
+    assert all("lamp" in f for f in flags[25:50])
+    assert max(gains) == 1.0
+
+
+def test_biased_light_sensor_does_not_move_the_lamps():
+    gains, flags, truth = fault_run(Fault(tick=20, kind="bias", target=PPF, params={"offset": -15.0}, duration=30))
+    assert max(gains) == 1.0
+    assert any("light_sensor_offset" in f for f in flags[20:50])
+    assert all(t == pytest.approx(295.14, rel=1e-3) for t in truth[2:])

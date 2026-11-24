@@ -13,11 +13,20 @@ per-phase thresholds. Dimming happens as soon as charge falls below a threshold;
 again needs `band` extra charge, so the lamps don't flicker when charge hovers at a threshold.
 Crop age restarts at each harvest (crop.biomass_store_kg going up). A missing battery
 reading keeps the current level.
+
+Lamp faults: a LampMonitor compares the power the lamps drew with what was asked. When it
+flags a lamp fault with ratio r (fraction of the power getting through, e.g. 0.6 for failed
+LED drivers), the request is multiplied by 1/r, capped at max_gain = 1.5: the real fixtures
+are 1.5x the 'average lamp' power (2/3 duty for the 16 h photoperiod). When the fault
+clears the gain returns to 1. The correction follows measured power, not the light sensor:
+light saturates at full, so a sensor-driven boost would never come back down, and a biased
+sensor can't push the lamps around. A dead circuit (r = 0) is flagged, not compensated.
 """
 from __future__ import annotations
 
 from typing import Any, Dict, Optional, Tuple
 
+from estimators import LampMonitor
 from interface import bindings
 
 LEVELS = (("FULL", 1.0), ("REDUCED", 0.75), ("SURVIVAL", 0.30))
@@ -32,8 +41,11 @@ PHASES = (
 
 class LightingController:
     def __init__(self, crop_area_m2: float = 10.0, band: float = 0.05,
-                 default_capacity_Wh: float = 200000.0, shelf: int = 0):
+                 default_capacity_Wh: float = 200000.0, shelf: int = 0,
+                 max_gain: float = 1.5, monitor: Optional[LampMonitor] = None):
         self.crop_area_m2 = float(crop_area_m2)
+        self.max_gain = float(max_gain)
+        self.monitor = monitor or LampMonitor(crop_area_m2=crop_area_m2, shelf=shelf)
         self.band = float(band)
         self.default_capacity_Wh = float(default_capacity_Wh)
         self.prefix = f"crop.s{shelf}."
@@ -46,6 +58,10 @@ class LightingController:
         self.soc: Optional[float] = None
         self._prev_biomass: Optional[float] = None
         self._capacity = self.default_capacity_Wh
+        self.gain = 1.0
+        self.status: Dict[str, Any] = {}
+        self._asked: Optional[float] = None
+        self.monitor.reset()
 
     @property
     def mode(self) -> str:
@@ -88,5 +104,17 @@ class LightingController:
         if level_Wh is not None and self._capacity > 0:
             self.soc = float(level_Wh) / self._capacity
             self.level = self._choose(self.soc)
+        self._update_gain(obs)
         full_W = bindings.full_light_W(self.crop_area_m2, float(obs.get(self.prefix + "ppf_needed") or 295.14))
-        return {"cmd.crop_power_W": LEVELS[self.level][1] * full_W}
+        self._asked = LEVELS[self.level][1] * full_W * self.gain
+        return {"cmd.crop_power_W": self._asked}
+
+    def _update_gain(self, obs: Dict[str, Any]) -> None:
+        # the state reports the draw during the last step, which the last request drove
+        self.status = self.monitor.update(obs, self._asked)
+        ratio = self.status["lamp.ratio"]
+        if "lamp" not in self.status["lamp.faults"]:
+            self.gain = 1.0
+        elif ratio is not None and ratio > 0:
+            self.gain = min(self.max_gain, max(1.0, 1.0 / ratio))
+        # a dead circuit (ratio 0) keeps the gain: more power can't help, the fault is flagged
