@@ -1,18 +1,24 @@
-"""Lighting controller for the lettuce bed: picks a brightness from battery charge and crop age.
+"""Lighting controller for the lettuce bed: dims the lamps only when that actually saves energy
+the greenhouse will need, and least for a young crop.
 
 Levels are fractions of full light (295 umol/m2/s, ~729 W on the LED shelf):
     FULL 1.0    REDUCED 0.75    SURVIVAL 0.30
 
-Why age matters (results/light_experiment.md): a 72 h blackout costs 42 % of the yield at
-tick 100 but only 5 % at tick 550, and the crop only died when light stayed at or below 10 %
-for most of a cycle. So a young crop keeps full light down to a low battery, a crop near
-harvest is dimmed first, and SURVIVAL (30 %) stays well above the death threshold.
+Two findings from full-system storm runs (results/storm_run.md) shape it:
+  - Lamp power is also greenhouse heat (90 % of it, thermal model). While the heater is running,
+    dimming only makes the heater replace that heat: about 10 % saved, all the light lost. So
+    the lamps dim only while the heater is idle (power.heater_draw below heater_idle_W).
+  - Dimming on battery charge alone cost 3.5 kg in a 14-day storm the battery rode out anyway.
+    So the trigger is how long the battery will last: the drain over the last window_h ticks
+    (a full sol, so day and night even out) against the charge above the supervisor's reserve.
 
-Battery state of charge (power.store_level / power.store_capacity) is compared with
-per-phase thresholds. Dimming happens as soon as charge falls below a threshold; brightening
-again needs `band` extra charge, so the lamps don't flicker when charge hovers at a threshold.
-Crop age restarts at each harvest (crop.biomass_store_kg going up). A missing battery
-reading keeps the current level.
+Hours left are compared with a horizon that depends on crop age (results/light_experiment.md:
+a 72 h blackout costs 42 % of the yield at tick 100 but 5 % at tick 550): a young crop dims
+only when the battery is close to empty, a crop near harvest well before. Below the horizon the
+lamps go REDUCED, below half of it SURVIVAL (30 %, well above the 10 % at which crops died).
+Brightening needs band_h more hours, so the level doesn't flicker. Crop age restarts at each
+harvest (crop.biomass_store_kg going up). With no battery reading, or less than half a window
+of history, the level is kept.
 
 Lamp faults: a LampMonitor compares the power the lamps drew with what was asked. When it
 flags a lamp fault with ratio r (fraction of the power getting through, e.g. 0.6 for failed
@@ -24,30 +30,33 @@ sensor can't push the lamps around. A dead circuit (r = 0) is flagged, not compe
 """
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from collections import deque
+from typing import Any, Dict, Optional
 
 from estimators import LampMonitor
 from interface import bindings
 
 LEVELS = (("FULL", 1.0), ("REDUCED", 0.75), ("SURVIVAL", 0.30))
 
-# (end of phase as a fraction of the cycle, charge below which to go REDUCED, below which SURVIVAL)
+# (end of phase as a fraction of the cycle, hours of battery left below which to dim)
 PHASES = (
-    (0.40, 0.25, 0.12),   # young: light now sets canopy closure, protect it
-    (0.75, 0.40, 0.20),   # middle
-    (1.01, 0.55, 0.30),   # near harvest: light matters least, dim first
+    (0.40, 48.0),    # young: light now sets canopy closure, protect it
+    (0.75, 96.0),    # middle
+    (1.01, 168.0),   # near harvest: light matters least, dim first
 )
 
 
 class LightingController:
-    def __init__(self, crop_area_m2: float = 10.0, band: float = 0.05,
-                 default_capacity_Wh: float = 200000.0, shelf: int = 0,
+    def __init__(self, crop_area_m2: float = 10.0, reserve_Wh: float = 5000.0, window_h: int = 24,
+                 band_h: float = 12.0, heater_idle_W: float = 50.0, shelf: int = 0,
                  max_gain: float = 1.5, monitor: Optional[LampMonitor] = None):
         self.crop_area_m2 = float(crop_area_m2)
+        self.reserve_Wh = float(reserve_Wh)        # match the power supervisor's
+        self.window_h = int(window_h)
+        self.band_h = float(band_h)
+        self.heater_idle_W = float(heater_idle_W)
         self.max_gain = float(max_gain)
         self.monitor = monitor or LampMonitor(crop_area_m2=crop_area_m2, shelf=shelf)
-        self.band = float(band)
-        self.default_capacity_Wh = float(default_capacity_Wh)
         self.prefix = f"crop.s{shelf}."
         self.reset()
 
@@ -55,9 +64,10 @@ class LightingController:
         self.level = 0                       # index into LEVELS
         self.planted_tick = 0
         self.age_frac = 0.0
-        self.soc: Optional[float] = None
+        self.hours_left: Optional[float] = None
+        self.heater_on = False
         self._prev_biomass: Optional[float] = None
-        self._capacity = self.default_capacity_Wh
+        self._battery = deque(maxlen=self.window_h + 1)
         self.gain = 1.0
         self.status: Dict[str, Any] = {}
         self._asked: Optional[float] = None
@@ -67,11 +77,11 @@ class LightingController:
     def mode(self) -> str:
         return LEVELS[self.level][0]
 
-    def thresholds(self) -> Tuple[float, float]:
-        for end, reduced, survival in PHASES:
+    def horizon_h(self) -> float:
+        for end, hours in PHASES:
             if self.age_frac < end:
-                return reduced, survival
-        return PHASES[-1][1:]
+                return hours
+        return PHASES[-1][1]
 
     def _update_age(self, obs: Dict[str, Any]) -> None:
         tick = int(obs.get("time.tick", 0))
@@ -83,30 +93,41 @@ class LightingController:
         cycle_ticks = 24.0 * float(obs.get(self.prefix + "harvest_interval") or 28.0)
         self.age_frac = max(0.0, (tick - self.planted_tick) / cycle_ticks)
 
-    def _choose(self, soc: float) -> int:
-        reduced, survival = self.thresholds()
-        want = 0 if soc >= reduced else 1 if soc >= survival else 2
+    def _update_hours_left(self, level_Wh: Optional[float]) -> None:
+        if level_Wh is None:
+            return
+        self._battery.append(float(level_Wh))
+        if len(self._battery) <= self.window_h // 2:
+            return                           # too little history to tell a storm from a night
+        drain_W = (self._battery[0] - self._battery[-1]) / (len(self._battery) - 1)
+        above = max(0.0, self._battery[-1] - self.reserve_Wh)
+        self.hours_left = above / drain_W if drain_W > 0 else float("inf")
+
+    def _choose(self) -> int:
+        if self.hours_left is None:
+            return self.level
+        horizon = self.horizon_h()
+        want = 0 if self.hours_left >= horizon else 1 if self.hours_left >= horizon / 2 else 2
         if want >= self.level:
             return want                      # dimming (or staying): immediately
-        # brightening: only as far as charge clears the threshold plus the band
-        if soc >= reduced + self.band:
+        # brightening: only as far as the hours left clear the threshold plus the band
+        if self.hours_left >= horizon + self.band_h:
             return 0
-        if soc >= survival + self.band:
+        if self.hours_left >= horizon / 2 + self.band_h:
             return min(self.level, 1)
         return self.level
 
     def __call__(self, obs: Dict[str, Any]) -> Dict[str, float]:
         self._update_age(obs)
-        capacity = obs.get("power.store_capacity")
-        if capacity:
-            self._capacity = float(capacity)
-        level_Wh = obs.get("power.store_level")
-        if level_Wh is not None and self._capacity > 0:
-            self.soc = float(level_Wh) / self._capacity
-            self.level = self._choose(self.soc)
+        self._update_hours_left(obs.get("power.store_level"))
+        self.level = self._choose()
+        heater = obs.get("power.heater_draw")
+        self.heater_on = heater is not None and float(heater) > self.heater_idle_W
         self._update_gain(obs)
         full_W = bindings.full_light_W(self.crop_area_m2, float(obs.get(self.prefix + "ppf_needed") or 295.14))
-        self._asked = LEVELS[self.level][1] * full_W * self.gain
+        # with the heater on, lamp heat replaces heater heat: dimming would save ~10 % and lose light
+        fraction = 1.0 if self.heater_on else LEVELS[self.level][1]
+        self._asked = fraction * full_W * self.gain
         return {"cmd.crop_power_W": self._asked}
 
     def _update_gain(self, obs: Dict[str, Any]) -> None:
