@@ -2,7 +2,7 @@
 
 Run 2026-10-26 with `scripts/light_experiment.py --reps 2` against the Docker BioSim server. Rerun 2026-11-18 on current main, which includes the transpiration fix (`MathUtils.exp`) and the water and atmosphere changes: every condition matched the first run within 0.2 kg, and the table below holds for both.
 
-One 28-day lettuce cycle (10 m²) per run. Lamps follow a fixed schedule. CO2 is held near 1200 ppm and irrigation is capped at 20 L/tick, so light is the only thing that varies. The full-light harvest here (32.8 kg) is lower than in `scripts/water_check.py` (35.5 kg), which holds CO2 differently, so compare conditions within this table rather than across scripts. Full light means 295 µmol/m²/s, which BioSim delivers at 2.42 W of lamp power (see `bindings.delivered_ppf`).
+One 28-day lettuce cycle (10 m²) per run. Lamps follow a fixed schedule. CO2 is held near 1200 ppm and irrigation is capped at 20 L/tick, so light is the only thing that varies. The full-light harvest here (32.8 kg) is lower than in `scripts/water_check.py` (35.5 kg), which holds CO2 differently, so compare conditions within this table rather than across scripts. Full light means 295 µmol/m²/s. With BioSim's original lamps that took 2.42 W; since 2026-11-24 the Mars config uses LED lamps (`lampEfficacy`), so full light is 729 W, and lamp levels below are fractions of that. A rerun on the LED build matched the table within 0.1 kg (see `bindings.delivered_ppf`).
 
 ## Results
 

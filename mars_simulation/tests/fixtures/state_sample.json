@@ -1,6 +1,6 @@
 {
  "globals": {
-  "myID": 16,
+  "myID": 47,
   "simulationIsPaused": true,
   "simulationStarted": true,
   "simulationEnded": false,
@@ -56,106 +56,6 @@
    ],
    "malfunctions": []
   },
-  "Potable_Water_Store": {
-   "moduleName": "Potable_Water_Store",
-   "moduleType": "PotableWaterStore",
-   "properties": {
-    "currentLevel": 1000.0,
-    "currentCapacity": 1000.0,
-    "overflow": 0.0,
-    "isPipe": false
-   },
-   "malfunctions": []
-  },
-  "Water_Recycler": {
-   "moduleName": "Water_Recycler",
-   "moduleType": "WaterRSLinear",
-   "consumers": [
-    {
-     "type": "DirtyWater",
-     "rates": {
-      "maxFlowRates": [
-       10.0
-      ],
-      "desiredFlowRates": [
-       10.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       10.0
-      ]
-     },
-     "connections": [
-      "Dirty_Water_Store"
-     ]
-    },
-    {
-     "type": "Power",
-     "rates": {
-      "maxFlowRates": [
-       1540.0
-      ],
-      "desiredFlowRates": [
-       0.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       0.0
-      ]
-     },
-     "connections": [
-      "Power_Store"
-     ]
-    },
-    {
-     "type": "GreyWater",
-     "rates": {
-      "maxFlowRates": [
-       10.0
-      ],
-      "desiredFlowRates": [
-       0.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       0.0
-      ]
-     },
-     "connections": [
-      "Grey_Water_Store"
-     ]
-    }
-   ],
-   "producers": [
-    {
-     "type": "PotableWater",
-     "rates": {
-      "maxFlowRates": [
-       10.0
-      ],
-      "desiredFlowRates": [
-       10.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       10.0
-      ]
-     },
-     "connections": [
-      "Potable_Water_Store"
-     ]
-    }
-   ],
-   "malfunctions": []
-  },
   "Power_Store": {
    "moduleName": "Power_Store",
    "moduleType": "PowerStore",
@@ -189,33 +89,6 @@
    },
    "malfunctions": []
   },
-  "Greenhouse": {
-   "moduleName": "Greenhouse",
-   "moduleType": "SimEnvironment",
-   "properties": {
-    "temperature": 23.0,
-    "temperatureInKelvin": 296.15,
-    "lightIntensity": 0.0,
-    "currentVolume": 50000.0,
-    "initialVolume": 50000.0,
-    "dayLength": 24.66,
-    "hourOfDayStart": 0.0,
-    "maxLumens": 50000.0,
-    "relativeHumidity": 0.7176846,
-    "airLockVolume": 3.7,
-    "totalPressure": 101.0,
-    "totalMoles": 2051.0188,
-    "dangerousOxygenThreshold": 1.0,
-    "leakRate": 0.0,
-    "initialTotalPressure": 101.0,
-    "o2Moles": 430.71393,
-    "co2Moles": 2.4612224,
-    "otherMoles": 0.0,
-    "vaporMoles": 41.020374,
-    "nitrogenMoles": 1576.8232
-   },
-   "malfunctions": []
-  },
   "Grey_Water_Store": {
    "moduleName": "Grey_Water_Store",
    "moduleType": "GreyWaterStore",
@@ -227,12 +100,184 @@
    },
    "malfunctions": []
   },
-  "CO2_Injector": {
-   "moduleName": "CO2_Injector",
+  "Greenhouse_Heater": {
+   "moduleName": "Greenhouse_Heater",
    "moduleType": "Injector",
    "consumers": [
     {
+     "type": "GreyWater",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Air",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "H2",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Nitrogen",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "O2",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "CO2",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Biomass",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "DryWaste",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Food",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Water",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
      "type": "PotableWater",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Power",
+     "rates": {
+      "maxFlowRates": [
+       5000.0
+      ],
+      "desiredFlowRates": [
+       0.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       0.0
+      ]
+     },
+     "connections": [
+      "Power_Store"
+     ]
+    },
+    {
+     "type": "DirtyWater",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    }
+   ],
+   "producers": [
+    {
+     "type": "Power",
+     "rates": {
+      "maxFlowRates": [
+       5000.0
+      ],
+      "desiredFlowRates": [
+       5000.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       5000.0
+      ]
+     },
+     "connections": [
+      "Heater_Sink"
+     ]
+    },
+    {
+     "type": "PotableWater",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "GreyWater",
      "rates": {
       "maxFlowRates": [],
       "desiredFlowRates": [],
@@ -252,7 +297,7 @@
      "connections": []
     },
     {
-     "type": "Power",
+     "type": "Air",
      "rates": {
       "maxFlowRates": [],
       "desiredFlowRates": [],
@@ -261,6 +306,445 @@
      },
      "connections": []
     },
+    {
+     "type": "H2",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Nitrogen",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "O2",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "CO2",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Biomass",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "DryWaste",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Food",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "Water",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    }
+   ],
+   "malfunctions": []
+  },
+  "Lettuce_Bed": {
+   "moduleName": "Lettuce_Bed",
+   "moduleType": "BiomassPS",
+   "consumers": [
+    {
+     "type": "GreyWater",
+     "rates": {
+      "maxFlowRates": [
+       0.0
+      ],
+      "desiredFlowRates": [
+       0.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       0.0
+      ]
+     },
+     "connections": [
+      "Grey_Water_Store"
+     ]
+    },
+    {
+     "type": "Air",
+     "rates": {
+      "maxFlowRates": [
+       0.0
+      ],
+      "desiredFlowRates": [
+       0.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       0.0
+      ]
+     },
+     "connections": [
+      "Greenhouse"
+     ]
+    },
+    {
+     "type": "PotableWater",
+     "rates": {
+      "maxFlowRates": [
+       200.0
+      ],
+      "desiredFlowRates": [
+       20.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       20.0
+      ]
+     },
+     "connections": [
+      "Potable_Water_Store"
+     ]
+    },
+    {
+     "type": "Power",
+     "rates": {
+      "maxFlowRates": [
+       20000.0
+      ],
+      "desiredFlowRates": [
+       729.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       729.0
+      ]
+     },
+     "connections": [
+      "Power_Store"
+     ]
+    }
+   ],
+   "producers": [
+    {
+     "type": "DirtyWater",
+     "rates": {
+      "maxFlowRates": [
+       100.0
+      ],
+      "desiredFlowRates": [
+       100.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       100.0
+      ]
+     },
+     "connections": [
+      "Dirty_Water_Store"
+     ]
+    },
+    {
+     "type": "Air",
+     "rates": {
+      "maxFlowRates": [
+       0.0
+      ],
+      "desiredFlowRates": [
+       0.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       0.0
+      ]
+     },
+     "connections": [
+      "Greenhouse"
+     ]
+    },
+    {
+     "type": "Biomass",
+     "rates": {
+      "maxFlowRates": [
+       100.0
+      ],
+      "desiredFlowRates": [
+       100.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       100.0
+      ]
+     },
+     "connections": [
+      "Biomass_Store"
+     ]
+    }
+   ],
+   "properties": {
+    "shelves": [
+     {
+      "plantType": "Lettuce",
+      "cropAreaUsed": 10.0,
+      "cropAreaTotal": 10.0,
+      "timeTillCanopyClosure": 0.0,
+      "harvestInterval": 28.0,
+      "ppfNeeded": 295.14,
+      "molesOfCO2Inhaled": 0.0,
+      "waterLevel": 0.0,
+      "waterCapacity": 500.0,
+      "photonEfficacy": 4.05
+     }
+    ]
+   },
+   "malfunctions": []
+  },
+  "Dehumidifier": {
+   "moduleName": "Dehumidifier",
+   "moduleType": "Dehumidifier",
+   "consumers": [
+    {
+     "type": "Air",
+     "rates": {
+      "maxFlowRates": [
+       1000.0
+      ],
+      "desiredFlowRates": [
+       1000.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       1000.0
+      ]
+     },
+     "connections": [
+      "Greenhouse"
+     ]
+    }
+   ],
+   "producers": [
+    {
+     "type": "DirtyWater",
+     "rates": {
+      "maxFlowRates": [
+       1000.0
+      ],
+      "desiredFlowRates": [
+       1000.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       1000.0
+      ]
+     },
+     "connections": [
+      "Dirty_Water_Store"
+     ]
+    }
+   ],
+   "malfunctions": []
+  },
+  "Potable_Water_Store": {
+   "moduleName": "Potable_Water_Store",
+   "moduleType": "PotableWaterStore",
+   "properties": {
+    "currentLevel": 1000.0,
+    "currentCapacity": 1000.0,
+    "overflow": 0.0,
+    "isPipe": false
+   },
+   "malfunctions": []
+  },
+  "Water_Recycler": {
+   "moduleName": "Water_Recycler",
+   "moduleType": "WaterRSLinear",
+   "consumers": [
+    {
+     "type": "GreyWater",
+     "rates": {
+      "maxFlowRates": [
+       10.0
+      ],
+      "desiredFlowRates": [
+       0.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       0.0
+      ]
+     },
+     "connections": [
+      "Grey_Water_Store"
+     ]
+    },
+    {
+     "type": "Power",
+     "rates": {
+      "maxFlowRates": [
+       1540.0
+      ],
+      "desiredFlowRates": [
+       0.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       0.0
+      ]
+     },
+     "connections": [
+      "Power_Store"
+     ]
+    },
+    {
+     "type": "DirtyWater",
+     "rates": {
+      "maxFlowRates": [
+       10.0
+      ],
+      "desiredFlowRates": [
+       10.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       10.0
+      ]
+     },
+     "connections": [
+      "Dirty_Water_Store"
+     ]
+    }
+   ],
+   "producers": [
+    {
+     "type": "PotableWater",
+     "rates": {
+      "maxFlowRates": [
+       10.0
+      ],
+      "desiredFlowRates": [
+       10.0
+      ],
+      "actualFlowRates": [
+       0.0
+      ],
+      "initialFlowRates": [
+       10.0
+      ]
+     },
+     "connections": [
+      "Potable_Water_Store"
+     ]
+    }
+   ],
+   "malfunctions": []
+  },
+  "Heater_Sink": {
+   "moduleName": "Heater_Sink",
+   "moduleType": "PowerStore",
+   "properties": {
+    "currentLevel": 0.0,
+    "currentCapacity": 200000.0,
+    "overflow": 0.0,
+    "isPipe": false
+   },
+   "malfunctions": []
+  },
+  "Greenhouse": {
+   "moduleName": "Greenhouse",
+   "moduleType": "SimEnvironment",
+   "properties": {
+    "temperature": 22.0,
+    "temperatureInKelvin": 295.15,
+    "lightIntensity": 0.0,
+    "currentVolume": 50000.0,
+    "initialVolume": 50000.0,
+    "dayLength": 24.66,
+    "hourOfDayStart": 0.0,
+    "maxLumens": 50000.0,
+    "relativeHumidity": 0.7626845,
+    "airLockVolume": 3.7,
+    "totalPressure": 101.0,
+    "totalMoles": 2057.9678,
+    "dangerousOxygenThreshold": 1.0,
+    "leakRate": 0.0,
+    "initialTotalPressure": 101.0,
+    "o2Moles": 432.17322,
+    "co2Moles": 2.4695613,
+    "otherMoles": 0.0,
+    "vaporMoles": 41.159355,
+    "nitrogenMoles": 1582.1656
+   },
+   "malfunctions": []
+  },
+  "CO2_Injector": {
+   "moduleName": "CO2_Injector",
+   "moduleType": "Injector",
+   "consumers": [
     {
      "type": "GreyWater",
      "rates": {
@@ -370,21 +854,9 @@
       "initialFlowRates": []
      },
      "connections": []
-    }
-   ],
-   "producers": [
-    {
-     "type": "PotableWater",
-     "rates": {
-      "maxFlowRates": [],
-      "desiredFlowRates": [],
-      "actualFlowRates": [],
-      "initialFlowRates": []
-     },
-     "connections": []
     },
     {
-     "type": "DirtyWater",
+     "type": "PotableWater",
      "rates": {
       "maxFlowRates": [],
       "desiredFlowRates": [],
@@ -404,7 +876,49 @@
      "connections": []
     },
     {
+     "type": "DirtyWater",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    }
+   ],
+   "producers": [
+    {
+     "type": "Power",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "PotableWater",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
      "type": "GreyWater",
+     "rates": {
+      "maxFlowRates": [],
+      "desiredFlowRates": [],
+      "actualFlowRates": [],
+      "initialFlowRates": []
+     },
+     "connections": []
+    },
+    {
+     "type": "DirtyWater",
      "rates": {
       "maxFlowRates": [],
       "desiredFlowRates": [],
@@ -512,219 +1026,6 @@
       "initialFlowRates": []
      },
      "connections": []
-    }
-   ],
-   "malfunctions": []
-  },
-  "Lettuce_Bed": {
-   "moduleName": "Lettuce_Bed",
-   "moduleType": "BiomassPS",
-   "consumers": [
-    {
-     "type": "PotableWater",
-     "rates": {
-      "maxFlowRates": [
-       200.0
-      ],
-      "desiredFlowRates": [
-       20.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       20.0
-      ]
-     },
-     "connections": [
-      "Potable_Water_Store"
-     ]
-    },
-    {
-     "type": "Power",
-     "rates": {
-      "maxFlowRates": [
-       20000.0
-      ],
-      "desiredFlowRates": [
-       2000.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       2000.0
-      ]
-     },
-     "connections": [
-      "Power_Store"
-     ]
-    },
-    {
-     "type": "GreyWater",
-     "rates": {
-      "maxFlowRates": [
-       0.0
-      ],
-      "desiredFlowRates": [
-       0.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       0.0
-      ]
-     },
-     "connections": [
-      "Grey_Water_Store"
-     ]
-    },
-    {
-     "type": "Air",
-     "rates": {
-      "maxFlowRates": [
-       0.0
-      ],
-      "desiredFlowRates": [
-       0.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       0.0
-      ]
-     },
-     "connections": [
-      "Greenhouse"
-     ]
-    }
-   ],
-   "producers": [
-    {
-     "type": "DirtyWater",
-     "rates": {
-      "maxFlowRates": [
-       100.0
-      ],
-      "desiredFlowRates": [
-       100.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       100.0
-      ]
-     },
-     "connections": [
-      "Dirty_Water_Store"
-     ]
-    },
-    {
-     "type": "Air",
-     "rates": {
-      "maxFlowRates": [
-       0.0
-      ],
-      "desiredFlowRates": [
-       0.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       0.0
-      ]
-     },
-     "connections": [
-      "Greenhouse"
-     ]
-    },
-    {
-     "type": "Biomass",
-     "rates": {
-      "maxFlowRates": [
-       100.0
-      ],
-      "desiredFlowRates": [
-       100.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       100.0
-      ]
-     },
-     "connections": [
-      "Biomass_Store"
-     ]
-    }
-   ],
-   "properties": {
-    "shelves": [
-     {
-      "plantType": "Lettuce",
-      "cropAreaUsed": 10.0,
-      "cropAreaTotal": 10.0,
-      "timeTillCanopyClosure": 0.0,
-      "harvestInterval": 28.0,
-      "ppfNeeded": 295.14,
-      "molesOfCO2Inhaled": 0.0,
-      "waterLevel": 0.0,
-      "waterCapacity": 500.0
-     }
-    ]
-   },
-   "malfunctions": []
-  },
-  "Dehumidifier": {
-   "moduleName": "Dehumidifier",
-   "moduleType": "Dehumidifier",
-   "consumers": [
-    {
-     "type": "Air",
-     "rates": {
-      "maxFlowRates": [
-       1000.0
-      ],
-      "desiredFlowRates": [
-       1000.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       1000.0
-      ]
-     },
-     "connections": [
-      "Greenhouse"
-     ]
-    }
-   ],
-   "producers": [
-    {
-     "type": "DirtyWater",
-     "rates": {
-      "maxFlowRates": [
-       1000.0
-      ],
-      "desiredFlowRates": [
-       1000.0
-      ],
-      "actualFlowRates": [
-       0.0
-      ],
-      "initialFlowRates": [
-       1000.0
-      ]
-     },
-     "connections": [
-      "Dirty_Water_Store"
-     ]
     }
    ],
    "malfunctions": []
