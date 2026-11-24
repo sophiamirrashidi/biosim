@@ -27,6 +27,7 @@ from estimators import AtmosphereTemperatureMonitor, MonitorInLoop
 from interface import FakePlant, Fault, TickLogger, run
 from interface import bindings
 from interface.plant import HybridPlant
+from safety import FailSafeSupervisor
 from sensors import AtmosphereSensorLayer, chain_sensor_layers
 
 START, LENGTH, N_TICKS = 300, 72, 400
@@ -37,7 +38,8 @@ SAFE_MIN_C, SAFE_MAX_C = 7.0, 32.0  # edge of the CRITICAL band in interface.sen
 def detection_layers():
     """(sensor_layer, supervisor) for run(). Add new monitors here."""
     loop = MonitorInLoop(AtmosphereTemperatureMonitor(temp_sensor_sigma_C=0.15, temp_model_sigma_C=0.25,
-                                                      temp_shift_C=1.0, temp_h_sigmas=4.0))
+                                                      temp_shift_C=1.0, temp_h_sigmas=4.0),
+                         inner_supervisor=FailSafeSupervisor())
     return chain_sensor_layers(AtmosphereSensorLayer(seed=42), loop.sensor_layer), loop.supervisor
 
 
@@ -126,7 +128,6 @@ def test_heater_at_half_output_is_detected():
                     must_stay_clear=["temp_faults"])
 
 
-@xfail
 def test_co2_injector_stuck_open_is_detected():
     # 0.5 mol/tick is ~240 ppm/tick into 2050 mol of air; only "blocked" is checked today
     assert_detected(sensor_fault("stuck", "cmd.co2_inject_mol", value=0.5), must_flag="injector",
@@ -148,11 +149,9 @@ def test_water_recycler_failure_is_detected():
 
 # Surviving a fault, not just detecting it
 
-@xfail
 def test_cabin_stays_safe_through_heater_burnout():
-    # burnout is caught within an hour, but nothing replaces the lost heat and the cabin falls to
-    # about -15 °C. Lamp power turns into heat (90 % in the thermal model), so a supervisor that
-    # raises cmd.crop_power_W on burnout is one way to pass this
+    # burnout is caught within an hour; safety.FailSafeSupervisor (protocol P4) then turns the
+    # lamps into the heater, sized by a control barrier function on the thermal model
     records = run_with(sensor_fault("stuck", "cmd.heater_W", value=0.0))
     temps = [r["truth"]["gh.temp_truth_C"] for r in records]
     assert SAFE_MIN_C <= min(temps) and max(temps) <= SAFE_MAX_C, \

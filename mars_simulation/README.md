@@ -19,6 +19,7 @@ pip install -r requirements.txt
 python scripts/smoke_test.py               # first check against the live server
 python scripts/water_check.py              # one lettuce cycle with the irrigation controller
 python scripts/atmosphere_fault_check.py   # temperature/CO2 fault scenarios, PASS/FAIL per scenario
+python scripts/sensor_safety_check.py      # falsification against the sensor safety requirements
 pytest                                     # offline tests (no server needed)
 pytest -m live                             # tests against the live server
 ```
@@ -127,6 +128,9 @@ All faults go into the log, so detection can be scored against them.
 | `scripts/water_check.py` | Live check: one cycle, estimator scored against BioSim's true reservoir. |
 | `scripts/atmosphere_fault_check.py` | Live check: one run per temperature/CO2/heater fault, scored for detection and cabin safety. Exits 1 if any scenario fails. `--fake` for FakePlant. |
 | `plant_next_steps.md` | Open decisions for the thermal model and plant coupling. |
+| `sensor_safety_requirements.md` | Sensor safety requirements (STL), hazard analysis and fail-safe protocols. |
+| `safety/` | STL robustness monitor, the requirements as code, `SensorGuard` and `FailSafeSupervisor`. |
+| `scripts/sensor_safety_check.py` | Falsification search over fault schedules against the safety requirements. Exits 1 on a counterexample. |
 
 ## Things that will bite you
 
